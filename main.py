@@ -34,8 +34,9 @@ def concatenate_lists(lists):
 
 class Main:
     def __init__(self):
-        self.number_of_people = 10  # input('Введите количество человек: ')
-        self.people_in_shift = 6  # input('Введите количество человек в смене: ')
+        self.task = True if input('Спрашивать ужимать дальше и какую смену удалять [y/n]: ') == 'y' else False
+        self.number_of_people = int(input('Введите количество человек: '))
+        self.people_in_shift = int(input('Введите количество человек в смене: '))
         self.list_people = generation_list(self.number_of_people)
 
         if input('Хотите ли вы импортировать данные [y/n]: ') == 'y':
@@ -44,11 +45,11 @@ class Main:
                 self.schedule = [list(map(int, row)) for row in reader]
         else:
             self.schedule = [
-                (1, 2, 3, 6, 7, 8),
-                (1, 2, 4, 5, 7, 9),
-                (1, 3, 4, 6, 9, 10),
-                (2, 4, 6, 7, 8, 10),
-                (3, 4, 5, 6, 8, 9)]
+                [1, 2, 3, 6, 7, 8],
+                [1, 2, 4, 5, 7, 9],
+                [1, 3, 5, 6, 9, 10],
+                [2, 4, 6, 7, 8, 10],
+                [3, 4, 5, 6, 8, 9]]
 
         self.all_pairs = get_a_combination(self.list_people)
         self.all_shifts = get_a_combination(self.list_people, self.people_in_shift)
@@ -57,6 +58,9 @@ class Main:
         self.run(self.schedule)
 
     def run(self, schedule):
+        print('Начинаю ужимать расписание:')
+        [print(i+1, shift) for i, shift in enumerate(schedule)]
+        print()
         # Основной алгоритм (ужатие)
         run = True
         while run:
@@ -64,11 +68,15 @@ class Main:
             count_unmet = self.calc_count_unmet(schedule)
 
             # Если есть не встретившиеся пары
-            if count_unmet:
+            if count_unmet != 0:
                 # Пробуем изменять смены (пристаивая пары)
                 changed = False
+                #Список не встретившихся людей
+                self.unmet_people = self.find_unmet_people(schedule)
                 # Определяем список смен в которых люди из не встретившихся пар
-                shifts_index = self.find_shifts_for_change(schedule)
+                shifts_index = self.find_shifts_with_unmet_people(schedule)
+                # Составляем список всех смен содержащих невстретившихся людей
+                self.all_shifts_with_unmet_people = [self.all_shifts[i] for i in self.find_shifts_with_unmet_people(self.all_shifts)]
                 # Для каждой найдой смены
                 for index in shifts_index:
                     # Пробуем уменьшить кол-во не встретившихся
@@ -79,18 +87,31 @@ class Main:
                         changed = True
                         break
                 if not changed:
-                    print('Больше не могу изменять.')
+                    if self.task:
+                        print('Больше не могу изменять.')
                     run = False
             else:
                 self.schedule_list.append(schedule.copy())
-                print(schedule)
-                if input('Ужимать? [y/n]: ') == 'y':
-                    shifts_index = self.calc_index_shifts(schedule)
-                    schedule.pop(int(input(f'Выберите одну из смен для удаления {shifts_index}: ')))
+                if self.task:
+                    [print(i+1, shift) for i, shift in enumerate(schedule)]
+                    if input('Ужимать? [y/n]: ') == 'y':
+                        shifts_index = self.calc_index_shifts(schedule)
+                        if len(shifts_index)>1:
+                            shift_index = int(input('Выберите одну из смен для удаления {}: '.format( list(map(lambda x: x+1, shifts_index)))) ) - 1
+                        else:
+                            shift_index = shifts_index[0]
+                        print('Удаляю {} {} смену'.format(shift_index + 1, schedule.pop(shift_index)))
+                    else:
+                        break
                 else:
-                    break
-        print(f'Список всех промежуточных состояний: {self.schedule_list}')
-        input('Для выхода из программы нажмите Enter')
+                    # [print(i+1, shift) for i, shift in enumerate(schedule)]
+                    shift_index = self.calc_index_shifts(schedule)[0]
+                    # print('Удаляю {} смену'.format(shift_index+1))
+                    schedule.pop(shift_index)
+        # print('Список всех промежуточных состояний: {}'.format(self.schedule_list))
+        print('Результат работы программы:')
+        [print(i+1, shift) for i, shift in enumerate(self.schedule_list[-1])]
+        # input('Для выхода из программы нажмите Enter')
         exit()
 
     def find_unmet(self, schedule):
@@ -103,18 +124,21 @@ class Main:
         """Считает количество невстретившихся пар в расписании"""
         return len(self.find_unmet(schedule))
 
-    def find_shifts_for_change(self, schedule):
-        """Находит смены в которых находятся не встретившиеся люди"""
-        people_unmet = set(concatenate_lists(self.find_unmet(schedule)))
-        return list(set(i for i, shift in enumerate(schedule) for people in people_unmet if people in shift))
+    def find_unmet_people(self, schedule):
+        """Находит не встретившихся людей в переданом расписании, возвращает список этих людей"""
+        return list(set(concatenate_lists(self.find_unmet(schedule))))
+
+    def find_shifts_with_unmet_people(self, shifts):
+        """Находит смены в которых содержатся не встретившиеся люди"""
+        return list(set(i for i, shift in enumerate(shifts) for people in self.unmet_people if people in shift))
 
     def change_shift(self, schedule, index):
-        """Функция перебирает все смены для выбранной и заменяет на ту в которой кол-во невстретившихся меньше"""
+        """Функция перебирает все смены содержащие невстретившихся людей для выбранной и заменяет на ту в которой кол-во невстретившихся меньше"""
         test_schedule = schedule.copy()
         test_schedule.pop(index)
-        for shift in self.all_shifts:
+        for shift in self.all_shifts_with_unmet_people:
             new_schedule = test_schedule.copy()
-            new_schedule.append(shift)
+            new_schedule.insert(index, shift)
             if self.calc_count_unmet(new_schedule) < self.calc_count_unmet(schedule):
                 return new_schedule
         return schedule
