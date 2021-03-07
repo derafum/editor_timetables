@@ -42,7 +42,7 @@ class Main:
         self.people_in_shift = 6  # self.people_in_shift = int(input('Введите количество человек в смене: '))
         self.list_people = generation_list(self.number_of_people)
 
-        self.name_file = 'import_10_6'  # input('Введите имя файла [имя по умолчанию: import]: ')
+        self.name_file = '../data/import_10_6'  # input('Введите имя файла [имя по умолчанию: import]: ')
         self.name_file = 'import' if self.name_file == '' else self.name_file
         with open(self.name_file + '.csv') as file:
             reader = csv.reader(file, delimiter=';', quotechar=',', quoting=csv.QUOTE_MINIMAL)
