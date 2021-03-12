@@ -35,16 +35,9 @@ def concatenate_lists(lists):
     return list(chain(*lists))
 
 
-def find_unmet(schedule, all_pairs):
-    """Возвращает пары которые не встретились в полученном расписании"""
-    # Кол-во встреч каждой из пар (словарь пара:кол-во)
-    number_of_meetings = count_elements(concatenate_lists(find_pairs(schedule)), all_pairs)
-    return [pair for pair, count in number_of_meetings.items() if count == 0]
-
-
 def did_everyone_meet(schedule, all_pairs):
     """Проверяет все ли встетились в переданном расписании"""
-    return len(find_unmet(schedule, all_pairs)) == 0
+    return 0 not in count_elements(concatenate_lists(find_pairs(schedule)), all_pairs).values()
 
 
 def calc(number_of_people, people_in_shift):
@@ -69,11 +62,10 @@ def calc(number_of_people, people_in_shift):
 
 
 if __name__ == '__main__':
-    N = 10
-    for i in range(2, N):
-        for j in range(2, i):
-            start = perf_counter()
-            calc(i, j)
-            # [print(i) for i in calc(i, in_shift)]
-            end = perf_counter()
-            print(i, j, end - start)
+    i, j = map(int, input('Кол-во игроков и кол-во людей в смене: ').split())
+    start = perf_counter()
+    timetables = calc(i, j)
+    # [print(i) for i in timetables]
+    end = perf_counter()
+    print(end - start)
+    input()
