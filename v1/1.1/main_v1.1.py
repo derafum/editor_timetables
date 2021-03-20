@@ -33,7 +33,7 @@ class Main:
                 print('Запись успешно добавленна.')
 
     def add_note(self, name, timetables):
-        columns = ', '.join([f"shift_{i+1} text" for i in range(len(timetables[0]))])
+        columns = ', '.join(['shift_{} text'.format(i+1) for i in range(len(timetables[0]))])
         self.db.append_table(name, columns)
         self.db.add_data_to_table(name, timetables)
 

@@ -11,38 +11,38 @@ class Table:
 
     def checking_for_existence(self):
         """Проверяет наличие таблицы в БД False - есть True - нет"""
-        self.cursor.execute(f'SELECT NAME FROM sqlite_master WHERE NAME = "{self.name}"')
+        self.cursor.execute('SELECT NAME FROM sqlite_master WHERE NAME = "{name}"'.format(name=self.name))
         return not len(self.cursor.fetchall()) == 0
 
     def get_columns_names(self):
-        self.cursor.execute(f'SELECT * FROM {self.name}')
+        self.cursor.execute('SELECT * FROM {name}'.format(name=self.name))
         return list(map(lambda x: x[0], self.cursor.description))
 
     def create(self, columns):
         """Создаёт таблицу"""
-        self.cursor.execute(f'CREATE TABLE IF NOT EXISTS {self.name}({columns})')
+        self.cursor.execute('CREATE TABLE IF NOT EXISTS {name}({columns})'.format(name=self.name, columns=columns))
         self.con.commit()
 
     def delete(self):
         """Удаляет таблицу"""
-        self.cursor.execute(f'DROP TABLE IF EXISTS {self.name}')
+        self.cursor.execute('DROP TABLE IF EXISTS {name}'.format(name=self.name))
         self.con.commit()
 
     def append(self, args, values):
         """Добавляет строку в таблицу (можно указать какие столбцы чем заполнять)
         args и values - должены быть в приведённом виде"""
-        self.cursor.execute(f'INSERT INTO {self.name}({args}) VALUES({values})')
+        self.cursor.execute('INSERT INTO {name}({args}) VALUES({values})'.format(name=self.name, args=args, values=values))
         self.con.commit()
 
     def update(self, args, values, identifier):
         """Обновленяет данные таблицы"""
-        self.cursor.execute(f'UPDATE {self.name} SET {args} = {values} WHERE id = {identifier}')
+        self.cursor.execute('UPDATE {name} SET {args} = {values} WHERE id = {identifier}'.format(name=self.name, args=args, values=values, identifier=identifier))
         self.con.commit()
 
     def read_all(self, display):
         """Чтение таблицы"""
         if self.checking_for_existence():
-            self.cursor.execute(f'SELECT * FROM {self.name}')
+            self.cursor.execute('SELECT * FROM {name}'.format(name=self.name))
             rows = [' '.join(list(map(str, row))) for row in self.cursor.fetchall()]
             if display:
                 [print(row) for row in rows]
