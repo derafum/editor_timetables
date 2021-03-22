@@ -23,17 +23,21 @@ class Main:
 
     def run(self):
         while True:
-            name = 'timetables_'+'_'.join([input('Введите кол-во человек: '), input('Введите кол-во человек в смене: ')])
+            name = 'timetables_' + '_'.join(
+                [input('Введите кол-во человек: '), input('Введите кол-во человек в смене: ')])
             if name in self.db.get_names_tables():
                 print('Такая запись уже существует')
             else:
-                print('Такой записи не найденно, считаем...')
                 number_of_people, people_in_shift = map(int, name.split('_')[1:])
-                self.add_note(name, mas.calc(number_of_people, people_in_shift))
-                print('Запись успешно добавленна.')
+                if 1 < people_in_shift <= number_of_people:
+                    print('Такой записи не найденно, считаем...')
+                    self.add_note(name, mas.calc(number_of_people, people_in_shift))
+                    print('Запись успешно добавленна.')
+                else:
+                    print('Введённые данные не корректны.')
 
     def add_note(self, name, timetables):
-        columns = ', '.join(['shift_{} text'.format(i+1) for i in range(len(timetables[0]))])
+        columns = ', '.join(['shift_{} text'.format(i + 1) for i in range(len(timetables[0]))])
         self.db.append_table(name, columns)
         self.db.add_data_to_table(name, timetables)
 
