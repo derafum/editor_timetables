@@ -1,6 +1,5 @@
 from itertools import combinations, chain
 from collections import Counter
-from time import perf_counter
 
 
 def generation_list(total_person):
@@ -62,10 +61,7 @@ def calc(number_of_people, people_in_shift):
 
 
 if __name__ == '__main__':
-    i, j = map(int, input('Кол-во игроков и кол-во людей в смене: ').split())
-    start = perf_counter()
+    i, j = map(int, input('Кол-во игроков и кол-во людей в смене (через пробел): ').split())
     timetables = calc(i, j)
-    # [print(i) for i in timetables]
-    end = perf_counter()
-    print(end - start)
+    [print(i) for i in timetables]
     input()
