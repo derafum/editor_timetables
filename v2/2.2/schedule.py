@@ -1,6 +1,5 @@
 from itertools import combinations, chain
 from collections import Counter
-import csv
 
 
 def find_pairs(shifts):
@@ -33,9 +32,11 @@ def concatenate_lists(lists):
 
 
 class Schedule:
+    """Класс расписания который позволяет получать всю необходимую о нём информацию"""
+
     def __init__(self, people_in_total_and_in_shift, shifts):
         # Список смен
-        self.shifts = shifts
+        self.shifts = shifts[:]
         # Кол-во людей и кол-во людей в смене
         self.number_of_people, self.people_in_shift = people_in_total_and_in_shift
         # Список людей
@@ -43,16 +44,22 @@ class Schedule:
         # Список всех пар которые могут образовывать эти (объекты спика list people) люди
         self.all_pairs = get_a_combination(self.list_people)
 
-        # Вычисляемые свойсва класса:
-        self.__count_shifts = None
-        self.__unmet_couples = None
-        self.__count_unmet = None
-        self.__unmet_people = None
-        self.__shifts_with_unmet_people = None
-        self.__abbreviated_shifts = None
+        # Буфер в который сохраняются рабочие варианты расписаний
+        self.tmp = []
+        # Булевая переменная отвечает за состояние в плане изменения расписания
+        self.changed = False
 
-    def update(self):
-        """Затирает все посчитанные значения (чтоб они пересчитались)"""
+        # Вычисляемые свойсва класса:
+        self.__count_shifts = None  # Кол-во смен в расписании
+        self.__unmet_couples = None  # Не встретившиеся пары
+        self.__count_unmet = None  # Кол-во не встретившихся
+        self.__unmet_people = None  # Не встретившиеся
+        self.__shifts_with_unmet_people = None  # Смены в которых есть не встретившиеся
+        self.__abbreviated_shifts = None  # Смены которые можно сократить
+
+    def update(self, shifts):
+        """Затирает все посчитанные значения (чтоб они пересчитались) и обновляет смены"""
+        self.shifts = shifts[:]
         self.__count_shifts = None
         self.__unmet_couples = None
         self.__count_unmet = None
@@ -61,17 +68,41 @@ class Schedule:
         self.__abbreviated_shifts = None
 
     def read(self):
-        [print(shift) for shift in self.shifts]
+        """Выводит расписание в консоль"""
+        [print(', '.join(map(str, shift))) for shift in self.shifts]
+        print()
+
+    def save(self):
+        """Сохраняет текущие смены"""
+        self.tmp.append(self.shifts[:])
+
+    def load(self):
+        """Восстанавливает последнее сохранённое расписание"""
+        self.shifts = self.tmp[-1][:]
+
+    def cut(self):
+        """Занимается сокращением расписания"""
+        # TODO Придумать как выбрать единственно верную смену под сокращение
+        # Сокращаем первую смену из списка смен под сокращение
+        shifts = self.shifts[:]
+        shifts.pop(self.abbreviated_shifts[0])
+        self.update(shifts)
+
+    def change(self):
+        """Занимается изменением расписания"""
+        # TODO Написать код
+        pass
 
     @property
     def count_shifts(self):
+        """Кол-во пар в расписании"""
         if self.__count_shifts is None:
             self.__count_shifts = len(self.shifts)
         return self.__count_shifts
 
     @property
     def unmet_couples(self):
-        """Возвращает пары которые не встретились"""
+        """Пары которые не встретились"""
         # Кол-во встреч каждой из пар (словарь пара:кол-во)
         if self.__unmet_couples is None:
             number_of_meetings = count_elements(concatenate_lists(find_pairs(self.shifts)), self.all_pairs)
@@ -80,21 +111,21 @@ class Schedule:
 
     @property
     def count_unmet(self):
-        """Считает количество невстретившихся пар"""
+        """Количество невстретившихся пар"""
         if self.__count_unmet is None:
             self.__count_unmet = len(self.unmet_couples)
         return self.__count_unmet
 
     @property
     def unmet_people(self):
-        """Находит не встретившихся людей, возвращает список этих людей"""
+        """Список не встретившиеся людей"""
         if self.__unmet_people is None:
             self.__unmet_people = list(set(concatenate_lists(self.unmet_couples)))
         return self.__unmet_people
 
     @property
     def shifts_with_unmet_people(self):
-        """Находит смены в которых содержатся не встретившиеся люди"""
+        """Смены в которых содержатся не встретившиеся люди"""
         if self.__shifts_with_unmet_people is None:
             self.__shifts_with_unmet_people = list(
                 set(i for i, shift in enumerate(self.shifts) for people in self.unmet_people if people in shift))
@@ -102,9 +133,9 @@ class Schedule:
 
     @property
     def abbreviated_shifts(self):
-        """Считает какие смены можно сократить
+        """Список смен которые можно сократить
         Находит смены в которых меньше всего пар встречавшихся 1 раз"""
-        if self.__shifts_with_unmet_people is None:
+        if self.__abbreviated_shifts is None:
             # Пары для каждой смены образовавшиеся в нашем (переданном в функцию) расписании
             couples_in_shifts = find_pairs(self.shifts)
             # Кол-во встреч каждой из пар (словарь пара:кол-во)
@@ -113,21 +144,5 @@ class Schedule:
             table = [[number_of_meetings[pair] for pair in shift].count(1) for shift in couples_in_shifts]
             # Выбираем из неё те смены в которых таких пар минимально
             shift_numbers = [i for i, j in enumerate(table) if j == min(table)]
-            self.__shifts_with_unmet_people = shift_numbers
-        return self.__shifts_with_unmet_people
-
-
-class Main:
-    def __init__(self):
-        self.people_in_total_and_in_shift = [10, 6]
-        # map(int, input('Введите количество человек: '), input('Введите количество человек в смене: '))
-
-        self.name_file = ''  # input('Введите имя файла [имя по умолчанию: import]: ')
-        self.name_file = '../data/import_10_6' if self.name_file == '' else self.name_file
-        with open(self.name_file + '.csv') as file:
-            reader = csv.reader(file, delimiter=';', quotechar=',', quoting=csv.QUOTE_MINIMAL)
-            self.schedule = Schedule(self.people_in_total_and_in_shift, [list(map(int, row)) for row in reader])
-
-
-if __name__ == '__main__':
-    Main()
+            self.__abbreviated_shifts = shift_numbers
+        return self.__abbreviated_shifts
