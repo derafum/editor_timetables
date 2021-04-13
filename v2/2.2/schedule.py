@@ -47,7 +47,7 @@ class Schedule:
         # Буфер в который сохраняются рабочие варианты расписаний
         self.tmp = []
         # Булевая переменная отвечает за состояние в плане изменения расписания
-        self.changed = False
+        self.changed = None
 
         # Вычисляемые свойсва класса:
         self.__couples_meeting_only_one_at_a_time = None  # Пары кол-во встреч которых = 1
@@ -58,7 +58,7 @@ class Schedule:
         self.__count_unmet = None  # Кол-во не встретившихся
         self.__unmet_people = None  # Не встретившиеся
         self.__shifts_with_unmet_people = None  # Смены в которых есть не встретившиеся
-        self.__shifts_in_which_the_number_of_pairs_met_once_is_minimal = None  # Смены которые можно сократить
+        self.__shortened_shifts = None  # Смены которые можно сократить
 
     def update(self, shifts):
         """Затирает все посчитанные значения (чтоб они пересчитались) и обновляет смены"""
@@ -71,61 +71,68 @@ class Schedule:
         self.__count_unmet = None
         self.__unmet_people = None
         self.__shifts_with_unmet_people = None
-        self.__shifts_in_which_the_number_of_pairs_met_once_is_minimal = None
+        self.__shortened_shifts = None
 
     def read(self):
         """Выводит расписание в консоль"""
-        [print(', '.join(map(str, shift))) for shift in self.shifts]
+        [print(str(i) + ')', ' '.join(map(str, shift))) for i, shift in enumerate(self.shifts, 1)]
         print()
 
     def save(self):
         """Сохраняет текущие смены"""
         self.tmp.append(self.shifts[:])
 
-    def load(self):
-        """Восстанавливает последнее сохранённое расписание"""
-        self.shifts = self.tmp[-1][:]
+    def load(self, index=-1):
+        """Восстанавливает сохранённое расписание"""
+        self.shifts = self.tmp[index][:]
 
     def cut(self):
         """Занимается сокращением расписания"""
         # TODO Придумать как выбрать единственно верную смену под сокращение
         # Сокращаем первую смену из списка смен под сокращение
         shifts = self.shifts[:]
-        shifts.pop(self.shifts_in_which_the_number_of_pairs_met_once_is_minimal[0])
+        shifts.pop(self.shortened_shifts[0])
+        print('Удаляю', self.shortened_shifts[0] + 1, 'смену.')
         self.update(shifts)
 
     def change(self):
         """Занимается изменением расписания"""
-        print(self.unmet_couples)
         self.changed = False
-        index = self.shifts_in_which_the_number_of_pairs_met_once_is_minimal[0]
-        people_for_change = self.list_people[:]
-        shift = self.shifts[index]
-        remaining_shifts = self.shifts[:]
-        remaining_shifts.pop(index)
-        [people_for_change.pop(people_for_change.index(people)) for people in shift if
-         people in self.unmet_people and people in people_for_change]
-        pairs = [pair for pair in self.couples_in_shifts[index] if pair in self.couples_meeting_only_one_at_a_time]
-        [people_for_change.pop(people_for_change.index(people)) for people in set(concatenate_lists(pairs)) if
-         people in people_for_change]
-        people_under_change = set(people_for_change) & set(shift)
-        print(index, shift)
-        print(people_under_change, people_for_change)
-        for u in people_under_change:
-            for f in people_for_change:
-                test_shift = shift[:]
-                test_shift.pop(test_shift.index(u))
-                test_shift.append(f)
-                test_shift.sort()
-                print(remaining_shifts + [test_shift])
-                test_schedule = Schedule([self.number_of_people, self.people_in_shift],
-                                         remaining_shifts + [test_shift])
-                test_schedule.read()
-                print('*', test_schedule.count_unmet, self.count_unmet)
-                if test_schedule.count_unmet < self.count_unmet:
-                    self.changed = True
-                    self.update(test_schedule.shifts[:])
+        # Для каждой смены в которых есть люди из не встретившихся пар
+        for index in self.shifts_with_unmet_people:
+            # Список людей в данной смене которые образуют в Данной смене одиночные пары
+            not_must_be_used = list(set(concatenate_lists(
+                [pair for pair in self.couples_in_shifts[index] if pair in self.couples_meeting_only_one_at_a_time])))
+            # Список людей которых будем пробовать заменить
+            # (Исключаем тех которые в ДАННОЙ смене образуют единственную встречу)
+            people = [human for human in self.shifts[index] if
+                      human not in self.unmet_people and human not in not_must_be_used]
+            # Список людей для замены
+            people_for_replace = [human for human in self.unmet_people if human not in self.shifts[index]]
+            # Для каждого из потенциально заменяемого
+            for human in people:
+                # Пробуем его заменить на одного из списка для замены
+                for by_whom in people_for_replace:
+                    self.change_shift(index, human, by_whom)
+                    if self.changed:
+                        break
+                if self.changed:
                     break
+            if self.changed:
+                break
+
+    def change_shift(self, index, human, by_whom):
+        """Меняет одного на другого и проверяет удачно ли это изменение"""
+        # print(index, human, by_whom)
+        test_shifts = [shift[:] for shift in self.shifts[:]]
+        test_shifts[index].pop(test_shifts[index].index(human))
+        test_shifts[index].append(by_whom)
+        test_shifts[index].sort()
+        test_schedule = Schedule([self.number_of_people, self.people_in_shift], test_shifts)
+        if test_schedule.count_unmet < self.count_unmet:
+            print('Изменяю', index + 1, 'смену', self.shifts[index], 'на', test_shifts[index])
+            self.update(test_shifts[:])
+            self.changed = True
 
     @property
     def count_shifts(self):
@@ -188,14 +195,14 @@ class Schedule:
         return self.__number_of_meetings
 
     @property
-    def shifts_in_which_the_number_of_pairs_met_once_is_minimal(self):
+    def shortened_shifts(self):
         """Находит смены в которых меньше всего пар встречавшихся один раз"""
-        if self.__shifts_in_which_the_number_of_pairs_met_once_is_minimal is None:
+        if self.__shortened_shifts is None:
             # Кол-во пар в сменах которые встречались только один раз.
             table = [[self.number_of_meetings[pair] for pair in shift].count(1) for shift in self.couples_in_shifts]
             # Минимальное кол-во пар в сменах
             min_z = min(table)
             # Выбираем из неё те смены в которых таких пар минимально
             shift_numbers = [i for i, j in enumerate(table) if j == min_z]
-            self.__shifts_in_which_the_number_of_pairs_met_once_is_minimal = shift_numbers
-        return self.__shifts_in_which_the_number_of_pairs_met_once_is_minimal
+            self.__shortened_shifts = shift_numbers
+        return self.__shortened_shifts
