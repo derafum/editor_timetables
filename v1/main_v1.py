@@ -135,7 +135,7 @@ def get_information_from_the_user():
                 err = False
         import_shifts = []
         if input('Хотите ли вы импортировать данные [y/n]: ').lower() == 'y':
-            with open('../data/import.csv') as File:
+            with open('../data/import_20_6.csv') as File:
                 reader = csv.reader(File, delimiter=';', quotechar=',', quoting=csv.QUOTE_MINIMAL)
                 for row in reader:
                     import_shifts.append(row)
