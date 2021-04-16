@@ -13,10 +13,9 @@ def get_schedule():
             schedule = Schedule(people_in_total_and_in_shift, [list(map(int, row)) for row in reader])
         # schedule.read()
     else:
-        people_in_total_and_in_shift = map(int, input('Введите количество человек: '),
-                                           input('Введите количество человек в смене: '))
-        name_file = input('Введите имя файла [имя по умолчанию: import]: ')
-        name_file = '../../data/import_10_6' if name_file == '' else name_file
+        people_in_total_and_in_shift = list(map(int, [input('Введите количество человек: '),
+                                                input('Введите количество человек в смене: ')]))
+        name_file = input('Введите имя файла: ')
         with open(name_file + '.csv') as file:
             reader = csv.reader(file, delimiter=';', quotechar=',', quoting=csv.QUOTE_MINIMAL)
             schedule = Schedule(people_in_total_and_in_shift, [list(map(int, row)) for row in reader])
