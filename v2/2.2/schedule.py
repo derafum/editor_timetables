@@ -34,9 +34,9 @@ def concatenate_lists(lists):
 class Schedule:
     """Класс расписания который позволяет получать всю необходимую о нём информацию"""
 
-    def __init__(self, people_in_total_and_in_shift, shifts):
+    def __init__(self, people_in_total_and_in_shift, shifts, identifier=0):
         # Список смен
-        self.shifts = shifts[:]
+        self.id = identifier
         # Кол-во людей и кол-во людей в смене
         self.number_of_people, self.people_in_shift = people_in_total_and_in_shift
         # Список людей
@@ -50,6 +50,7 @@ class Schedule:
         self.changed = None
 
         # Вычисляемые свойсва класса:
+        self.__shifts = shifts  # Они здесь для автоматического обновления всех ниже перечисленных свойств
         self.__couples_meeting_only_one_at_a_time = None  # Пары кол-во встреч которых = 1
         self.__couples_in_shifts = None  # Пары в каждой из смен
         self.__number_of_meetings = None  # Кол-во встреч каждой из пар
@@ -60,9 +61,20 @@ class Schedule:
         self.__shifts_with_unmet_people = None  # Смены в которых есть не встретившиеся
         self.__shortened_shifts = None  # Смены которые можно сократить
 
-    def update(self, shifts):
-        """Затирает все посчитанные значения (чтоб они пересчитались) и обновляет смены"""
-        self.shifts = [shift[:] for shift in shifts]
+    @property
+    def shifts(self):
+        """Попугай"""
+        self.update()
+        return self.__shifts
+
+    @shifts.setter
+    def shifts(self, shifts):
+        """Изменяет смены и обновляет выч. свойства"""
+        self.__shifts = [shift[:] for shift in shifts]
+        self.update()
+
+    def update(self):
+        """Затирает все посчитанные значения (чтоб они пересчитались)"""
         self.__couples_meeting_only_one_at_a_time = None
         self.__couples_in_shifts = None
         self.__number_of_meetings = None
@@ -88,26 +100,17 @@ class Schedule:
         """Восстанавливает сохранённое расписание"""
         self.shifts = [shift[:] for shift in self.tmp[index]] if len(self.tmp) else []
 
-    def cut(self):
+    def cut(self, index):
         """Занимается сокращением расписания"""
-        # Сокращаем первую смену из списка смен под сокращение
-        copy_shifts = [shift[:] for shift in self.shifts]  # Копия смен
+        print('Удаляю', index + 1, 'смену.')
+        self.shifts.pop(index)
 
-        # Удаление первой из списка на удаление
-        # print('Удаляю', self.shortened_shifts[0] + 1, 'смену.')
-        temp = [shift[:] for shift in self.shifts]
-        temp.pop(self.shortened_shifts[0])
-        # self.read(True)
-
-        # Обработка других вариантов
-        other_schedules = []
-        for index in range(1, len(self.shortened_shifts)):
-            temp = [shift[:] for shift in copy_shifts]
-            temp.pop(self.shortened_shifts[index])
-            other_schedules.append(Schedule([self.number_of_people, self.people_in_shift], temp))
-
-        self.update(temp)
-        return other_schedules
+    def temp(self, index):
+        """Возвращает копию объекта с удалённой сменой"""
+        copy_shifts = [shift[:] for shift in self.shifts]
+        temp = Schedule([self.number_of_people, self.people_in_shift], copy_shifts, self.id + 1)
+        temp.cut(index)
+        return temp
 
     def change(self):
         """Занимается изменением расписания"""
@@ -142,15 +145,14 @@ class Schedule:
 
     def replace_a_person(self, index, human, on_whom):
         """Меняет одного на другого и проверяет уменьшилось ли кол-во не встретившихся, обновляет расписание"""
-        # print(index, human, on_whom)
         test_shifts = [shift[:] for shift in self.shifts]
         test_shifts[index].pop(test_shifts[index].index(human))
         test_shifts[index].append(on_whom)
         test_shifts[index].sort()
         test_schedule = Schedule([self.number_of_people, self.people_in_shift], test_shifts)
         if test_schedule.count_unmet < self.count_unmet:
-            # print('Изменяю в', index + 1, 'смене', human, 'на', on_whom)
-            self.update(test_shifts)
+            print('Изменяю в', index + 1, 'смене', human, 'на', on_whom)
+            self.shifts = test_shifts
             self.changed = True
 
     @property
