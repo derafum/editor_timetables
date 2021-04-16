@@ -62,7 +62,7 @@ class Schedule:
 
     def update(self, shifts):
         """Затирает все посчитанные значения (чтоб они пересчитались) и обновляет смены"""
-        self.shifts = shifts[:]
+        self.shifts = [shift[:] for shift in shifts]
         self.__couples_meeting_only_one_at_a_time = None
         self.__couples_in_shifts = None
         self.__number_of_meetings = None
@@ -73,9 +73,11 @@ class Schedule:
         self.__shifts_with_unmet_people = None
         self.__shortened_shifts = None
 
-    def read(self):
+    def read(self, display_unmet=False):
         """Выводит расписание в консоль"""
         [print(str(i) + ')', ' '.join(map(str, shift))) for i, shift in enumerate(self.shifts, 1)]
+        if display_unmet:
+            print('Невстретившихся пар:', self.count_unmet)
         print()
 
     def save(self):
@@ -84,54 +86,71 @@ class Schedule:
 
     def load(self, index=-1):
         """Восстанавливает сохранённое расписание"""
-        self.shifts = self.tmp[index][:]
+        self.shifts = [shift[:] for shift in self.tmp[index]] if len(self.tmp) else []
 
     def cut(self):
         """Занимается сокращением расписания"""
-        # TODO Придумать как выбрать единственно верную смену под сокращение
         # Сокращаем первую смену из списка смен под сокращение
-        shifts = self.shifts[:]
-        shifts.pop(self.shortened_shifts[0])
-        print('Удаляю', self.shortened_shifts[0] + 1, 'смену.')
-        self.update(shifts)
+        copy_shifts = [shift[:] for shift in self.shifts]  # Копия смен
+
+        # Удаление первой из списка на удаление
+        # print('Удаляю', self.shortened_shifts[0] + 1, 'смену.')
+        temp = [shift[:] for shift in self.shifts]
+        temp.pop(self.shortened_shifts[0])
+        # self.read(True)
+
+        # Обработка других вариантов
+        other_schedules = []
+        for index in range(1, len(self.shortened_shifts)):
+            temp = [shift[:] for shift in copy_shifts]
+            temp.pop(self.shortened_shifts[index])
+            other_schedules.append(Schedule([self.number_of_people, self.people_in_shift], temp))
+
+        self.update(temp)
+        return other_schedules
 
     def change(self):
         """Занимается изменением расписания"""
         self.changed = False
         # Для каждой смены в которых есть люди из не встретившихся пар
         for index in self.shifts_with_unmet_people:
-            # Список людей в данной смене которые образуют в Данной смене одиночные пары
-            not_must_be_used = list(set(concatenate_lists(
-                [pair for pair in self.couples_in_shifts[index] if pair in self.couples_meeting_only_one_at_a_time])))
-            # Список людей которых будем пробовать заменить
-            # (Исключаем тех которые в ДАННОЙ смене образуют единственную встречу)
-            people = [human for human in self.shifts[index] if
-                      human not in self.unmet_people and human not in not_must_be_used]
-            # Список людей для замены
-            people_for_replace = [human for human in self.unmet_people if human not in self.shifts[index]]
-            # Для каждого из потенциально заменяемого
-            for human in people:
-                # Пробуем его заменить на одного из списка для замены
-                for by_whom in people_for_replace:
-                    self.change_shift(index, human, by_whom)
-                    if self.changed:
-                        break
+            self.change_shift(index)
+            if self.changed:
+                break
+
+    def change_shift(self, index):
+        """Пробует изменить смену"""
+        # Список людей в данной смене которые образуют в Данной смене одиночные пары
+        not_must_be_used = list(set(concatenate_lists(
+            [pair for pair in self.couples_in_shifts[index] if pair in self.couples_meeting_only_one_at_a_time])))
+        # Список людей которых будем пробовать заменить
+        # (Исключаем тех которые в ДАННОЙ смене образуют единственную встречу)
+        people = [human for human in self.shifts[index] if
+                  human not in self.unmet_people and human not in not_must_be_used]
+        # Список людей для замены
+        people_for_replace = [human for human in self.unmet_people if human not in self.shifts[index]]
+
+        # Для каждого из потенциально заменяемого
+        for human in people:
+            # Пробуем его заменить на одного из списка для замены
+            for by_whom in people_for_replace:
+                self.replace_a_person(index, human, by_whom)
                 if self.changed:
                     break
             if self.changed:
                 break
 
-    def change_shift(self, index, human, by_whom):
-        """Меняет одного на другого и проверяет удачно ли это изменение"""
-        # print(index, human, by_whom)
-        test_shifts = [shift[:] for shift in self.shifts[:]]
+    def replace_a_person(self, index, human, on_whom):
+        """Меняет одного на другого и проверяет уменьшилось ли кол-во не встретившихся, обновляет расписание"""
+        # print(index, human, on_whom)
+        test_shifts = [shift[:] for shift in self.shifts]
         test_shifts[index].pop(test_shifts[index].index(human))
-        test_shifts[index].append(by_whom)
+        test_shifts[index].append(on_whom)
         test_shifts[index].sort()
         test_schedule = Schedule([self.number_of_people, self.people_in_shift], test_shifts)
         if test_schedule.count_unmet < self.count_unmet:
-            print('Изменяю', index + 1, 'смену', self.shifts[index], 'на', test_shifts[index])
-            self.update(test_shifts[:])
+            # print('Изменяю в', index + 1, 'смене', human, 'на', on_whom)
+            self.update(test_shifts)
             self.changed = True
 
     @property
