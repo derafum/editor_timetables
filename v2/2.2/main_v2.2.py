@@ -4,6 +4,11 @@ from settings import *
 import os
 
 
+def clear_temp():
+    f = open(NAME_TEMP_FILE, 'w')
+    f.close()
+
+
 def save_to_temp(mass):
     """Записывает результаты в файл"""
     with open(NAME_TEMP_FILE, 'a') as f:
@@ -26,6 +31,7 @@ def squeeze_the_schedule(schedule):
             print('Все встретились')
             schedule.read()
             schedule.save()
+            print()
             # При возникновении нескольких смен под удаление рассматриваются все варианты
             if len(schedule.shortened_shifts) > 1:
                 norm_view = list(map(lambda x: x + 1, schedule.shortened_shifts))
@@ -36,6 +42,13 @@ def squeeze_the_schedule(schedule):
                     if i != len(schedule.shortened_shifts):
                         print('\nВозвращаемся к выбору', norm_view, '...')
                         schedule.read()
+                # Если не один из вариантов дальнейшего удаления смен не привёл к результату выводим последний рабочий
+                if not len(load_from_temp()):
+                    print('Не один из вариантов удаления смен', norm_view, ' не приводит к результату')
+                    print('Возвращаю последний рабочий вариант, запомню его:')
+                    schedule.read()
+                    schedule.load()
+                    save_to_temp(schedule.shifts)
                 # По завершению перебора вариантов выходим из цикла While
                 break
             else:
@@ -59,6 +72,7 @@ def main():
     """Выбирает расписания с минимальным кол-вом смен"""
     schedule, name_to_save = get_data()
 
+    clear_temp()
     print('Начинаю работу.\n')
     squeeze_the_schedule(schedule)
     print('Я закончил свою работу.')
