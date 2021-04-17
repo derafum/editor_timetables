@@ -1,18 +1,19 @@
 from get_user_data import get_data, save_to_csv
+from schedule import print_timetables
 from settings import *
 import os
 
 
-def save(mass):
+def save_to_temp(mass):
     """Записывает результаты в файл"""
-    with open(NAME_TEMP_FILE, mode='a') as f:
-        if len(mass) and mass not in load():
+    with open(NAME_TEMP_FILE, 'a') as f:
+        if len(mass) and mass not in load_from_temp():
             f.write(str(mass) + '\n')
 
 
-def load():
+def load_from_temp():
     """Загружает содержимое из файла"""
-    with open(NAME_TEMP_FILE, mode='r') as f:
+    with open(NAME_TEMP_FILE) as f:
         return [eval(elem) for elem in f.read().splitlines()]
 
 
@@ -35,9 +36,8 @@ def squeeze_the_schedule(schedule):
                     if i != len(schedule.shortened_shifts):
                         print('\nВозвращаемся к выбору', norm_view, '...')
                         schedule.read()
-                else:
-                    # По завершению перебора вариантов выходим из цикла While
-                    break
+                # По завершению перебора вариантов выходим из цикла While
+                break
             else:
                 schedule.cut(schedule.shortened_shifts[0])
         else:
@@ -49,20 +49,10 @@ def squeeze_the_schedule(schedule):
                 schedule.load()
                 if len(schedule.shifts):
                     print('Запомню этот вариант. Больше не могу изменять.')
-                    save(schedule.shifts)
+                    save_to_temp(schedule.shifts)
                 else:
                     print('Это тупиковый вариант...\n')
                 break
-
-
-def echo(timetables):
-    """Распечатывает расписания"""
-    for i, schedule in enumerate(timetables, 1):
-        if len(timetables) > 1:
-            print('Расписание №', i)
-        for j, shift in enumerate(schedule, 1):
-            print(str(j) + ')', *shift)
-        print()
 
 
 def main():
@@ -73,14 +63,14 @@ def main():
     squeeze_the_schedule(schedule)
     print('Я закончил свою работу.')
 
-    roll = load()
+    roll = load_from_temp()
     min_count_shift = min([len(schedule) for schedule in roll])
     os.remove(NAME_TEMP_FILE)
     timetables = [schedule for schedule in roll if len(schedule) == min_count_shift]
 
     print('Результат:')
-    echo(timetables)
-    save_to_csv('results/' + name_to_save, timetables)
+    print_timetables(timetables)
+    save_to_csv(name_to_save, timetables)
     if not DEBUG:
         input('Для выхода нажмите Enter')
 
