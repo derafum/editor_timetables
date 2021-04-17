@@ -7,11 +7,6 @@ def find_pairs(shifts):
     return [get_a_combination(shift) for shift in shifts]
 
 
-def generation_list(total_person):
-    """Создает список человек"""
-    return [x + 1 for x in range(total_person)]
-
-
 def count_elements(general_list, list_of_elements):
     """Считает количество переданных элементов в списке"""
     count = Counter(general_list)
@@ -31,16 +26,29 @@ def concatenate_lists(lists):
     return list(chain(*lists))
 
 
+def print_timetables(timetables):
+    """Распечатывает расписания"""
+    for i, schedule in enumerate(timetables, 1):
+        if len(timetables) > 1:
+            print('Расписание №', i)
+        print_schedule(schedule)
+
+
+def print_schedule(schedule):
+    """Распечатывает расписание"""
+    for j, shift in enumerate(schedule, 1):
+        print(str(j) + ')', *shift)
+    print()
+
+
 class Schedule:
     """Класс расписания который позволяет получать всю необходимую о нём информацию"""
 
-    def __init__(self, people_in_total_and_in_shift, shifts, identifier=0):
+    def __init__(self, shifts, identifier=0):
         # Список смен
         self.id = identifier
-        # Кол-во людей и кол-во людей в смене
-        self.number_of_people, self.people_in_shift = people_in_total_and_in_shift
         # Список людей
-        self.list_people = generation_list(self.number_of_people)
+        self.list_people = sorted(list(set(concatenate_lists(shifts))))
         # Список всех пар которые могут образовывать эти (объекты спика list people) люди
         self.all_pairs = get_a_combination(self.list_people)
 
@@ -85,12 +93,9 @@ class Schedule:
         self.__shifts_with_unmet_people = None
         self.__shortened_shifts = None
 
-    def read(self, display_unmet=False):
+    def read(self):
         """Выводит расписание в консоль"""
-        [print(str(i) + ')', ' '.join(map(str, shift))) for i, shift in enumerate(self.shifts, 1)]
-        if display_unmet:
-            print('Невстретившихся пар:', self.count_unmet)
-        print()
+        print_schedule(self.shifts)
 
     def save(self):
         """Сохраняет текущие смены"""
@@ -108,7 +113,7 @@ class Schedule:
     def temp(self, index):
         """Возвращает копию объекта с удалённой сменой"""
         copy_shifts = [shift[:] for shift in self.shifts]
-        temp = Schedule([self.number_of_people, self.people_in_shift], copy_shifts, self.id + 1)
+        temp = Schedule(copy_shifts, self.id + 1)
         temp.cut(index)
         return temp
 
@@ -149,7 +154,7 @@ class Schedule:
         test_shifts[index].pop(test_shifts[index].index(human))
         test_shifts[index].append(on_whom)
         test_shifts[index].sort()
-        test_schedule = Schedule([self.number_of_people, self.people_in_shift], test_shifts)
+        test_schedule = Schedule(test_shifts)
         if test_schedule.count_unmet < self.count_unmet:
             print('Изменяю в', index + 1, 'смене', human, 'на', on_whom)
             self.shifts = test_shifts
