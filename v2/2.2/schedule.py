@@ -32,13 +32,13 @@ def print_timetables(timetables):
         if len(timetables) > 1:
             print('Расписание №', i)
         print_schedule(schedule)
-        print()
 
 
 def print_schedule(schedule):
     """Распечатывает расписание"""
     for j, shift in enumerate(schedule, 1):
         print(str(j) + ')', *shift)
+    print()
 
 
 class Schedule:
@@ -159,13 +159,6 @@ class Schedule:
             print('Изменяю в', index + 1, 'смене', human, 'на', on_whom)
             self.shifts = test_shifts
             self.changed = True
-
-    @property
-    def count_shifts(self):
-        """Кол-во пар в расписании"""
-        if self.__count_shifts is None:
-            self.__count_shifts = len(self.shifts)
-        return self.__count_shifts
 
     @property
     def unmet_couples(self):
