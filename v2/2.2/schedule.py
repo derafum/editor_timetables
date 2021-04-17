@@ -32,13 +32,13 @@ def print_timetables(timetables):
         if len(timetables) > 1:
             print('Расписание №', i)
         print_schedule(schedule)
+        print()
 
 
 def print_schedule(schedule):
     """Распечатывает расписание"""
     for j, shift in enumerate(schedule, 1):
         print(str(j) + ')', *shift)
-    print()
 
 
 class Schedule:
