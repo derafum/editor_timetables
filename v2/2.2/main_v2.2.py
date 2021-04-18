@@ -1,25 +1,14 @@
 from get_user_data import get_data, save_to_csv
 from schedule import print_timetables
 from settings import *
-import os
 
-
-def clear_temp():
-    f = open(NAME_TEMP_FILE, 'w')
-    f.close()
+temp = []
 
 
 def save_to_temp(mass):
     """Записывает результаты в файл"""
-    with open(NAME_TEMP_FILE, 'a') as f:
-        if len(mass) and mass not in load_from_temp():
-            f.write(str(mass) + '\n')
-
-
-def load_from_temp():
-    """Загружает содержимое из файла"""
-    with open(NAME_TEMP_FILE) as f:
-        return [eval(elem) for elem in f.read().splitlines()]
+    if len(mass) and mass not in temp:
+        temp.append(mass)
 
 
 def squeeze_the_schedule(schedule, shrinkage_is_checked=False):
@@ -76,15 +65,12 @@ def main():
     """Выбирает расписания с минимальным кол-вом смен"""
     schedule, name_to_save = get_data()
 
-    clear_temp()
     print('Начинаю работу:')
     squeeze_the_schedule(schedule)
     print('Я закончил свою работу.')
 
-    roll = load_from_temp()
-    min_count_shift = min([len(schedule) for schedule in roll])
-    os.remove(NAME_TEMP_FILE)
-    timetables = [schedule for schedule in roll if len(schedule) == min_count_shift]
+    min_count_shift = min([len(schedule) for schedule in temp])
+    timetables = [schedule for schedule in temp if len(schedule) == min_count_shift]
 
     print('Результат:')
     print_timetables(timetables)
