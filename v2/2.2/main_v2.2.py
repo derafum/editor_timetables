@@ -22,8 +22,9 @@ def load_from_temp():
         return [eval(elem) for elem in f.read().splitlines()]
 
 
-def squeeze_the_schedule(schedule):
+def squeeze_the_schedule(schedule, shrinkage_is_checked=False):
     """Ужимает, и сохраняет свой вариант"""
+    there_is_a_working_option = False
     while True:
         # Если все встретились
         if schedule.count_unmet == 0:
@@ -31,19 +32,21 @@ def squeeze_the_schedule(schedule):
             print('Все встретились')
             schedule.read()
             schedule.save()
-            print()
+            if shrinkage_is_checked:
+                there_is_a_working_option = True
             # При возникновении нескольких смен под удаление рассматриваются все варианты
             if len(schedule.shortened_shifts) > 1:
                 norm_view = list(map(lambda x: x + 1, schedule.shortened_shifts))
                 print('Есть несколько вариантов удаления смен:', norm_view)
+                managed_to_shrink = []
                 for i, index in enumerate(schedule.shortened_shifts, 1):
                     print('Рассмотрим вариант с удалением', index + 1, 'смены:')
-                    squeeze_the_schedule(schedule.temp(index))
+                    managed_to_shrink.append(squeeze_the_schedule(schedule.temp(index), True))
                     if i != len(schedule.shortened_shifts):
-                        print('\nВозвращаемся к выбору', norm_view, '...')
+                        print('\nВозвращаемся к выбору', norm_view)
                         schedule.read()
                 # Если не один из вариантов дальнейшего удаления смен не привёл к результату выводим последний рабочий
-                if not len(load_from_temp()):
+                if not any(managed_to_shrink):
                     print('Не один из вариантов удаления смен', norm_view, ' не приводит к результату')
                     print('Возвращаю последний рабочий вариант, запомню его:')
                     schedule.read()
@@ -61,11 +64,12 @@ def squeeze_the_schedule(schedule):
                 # Восстанавливаем последний рабочий вариант
                 schedule.load()
                 if len(schedule.shifts):
-                    print('Запомню этот вариант. Больше не могу изменять.')
+                    print('Запомню тот вариант.')
                     save_to_temp(schedule.shifts)
                 else:
                     print('Это тупиковый вариант...\n')
                 break
+    return there_is_a_working_option
 
 
 def main():
@@ -73,7 +77,7 @@ def main():
     schedule, name_to_save = get_data()
 
     clear_temp()
-    print('Начинаю работу.\n')
+    print('Начинаю работу:')
     squeeze_the_schedule(schedule)
     print('Я закончил свою работу.')
 
