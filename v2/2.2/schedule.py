@@ -42,13 +42,18 @@ def print_schedule(schedule):
 
 
 class Schedule:
-    """Класс расписания который позволяет получать всю необходимую о нём информацию"""
+    """Класс расписания который позволяет получать всю необходимую о нём информацию
 
-    def __init__(self, shifts, identifier=0):
+    Работает с одинаковым количеством людей в сменах, первоначально обязательно должен получить расписание в котором
+    каждый уже встретился с каждым.
+
+    """
+
+    def __init__(self, shifts, list_people=None, identifier=0):
         # Список смен
         self.id = identifier
         # Список людей
-        self.list_people = sorted(list(set(concatenate_lists(shifts))))
+        self.list_people = sorted(list(set(concatenate_lists(shifts)))) if list_people is None else list_people
         # Список всех пар которые могут образовывать эти (объекты спика list people) люди
         self.all_pairs = get_a_combination(self.list_people)
 
@@ -113,7 +118,7 @@ class Schedule:
     def temp(self, index):
         """Возвращает копию объекта с удалённой сменой"""
         copy_shifts = [shift[:] for shift in self.shifts]
-        temp = Schedule(copy_shifts, self.id + 1)
+        temp = Schedule(copy_shifts, self.list_people, self.id + 1)
         temp.cut(index)
         return temp
 
@@ -154,7 +159,7 @@ class Schedule:
         test_shifts[index].pop(test_shifts[index].index(human))
         test_shifts[index].append(on_whom)
         test_shifts[index].sort()
-        test_schedule = Schedule(test_shifts)
+        test_schedule = Schedule(test_shifts, self.list_people)
         if test_schedule.count_unmet < self.count_unmet:
             print('Изменяю в', index + 1, 'смене', human, 'на', on_whom)
             self.shifts = test_shifts
