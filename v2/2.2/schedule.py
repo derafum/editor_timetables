@@ -1,5 +1,6 @@
 from itertools import combinations, chain
 from collections import Counter
+from settings import *
 
 
 def find_pairs(shifts):
@@ -112,7 +113,8 @@ class Schedule:
 
     def cut(self, index):
         """Занимается сокращением расписания"""
-        print('Удаляю', index + 1, 'смену.')
+        if display_work and display_delete:
+            print('Удаляю', index + 1, 'смену.')
         self.shifts.pop(index)
 
     def temp(self, index):
@@ -161,7 +163,8 @@ class Schedule:
         test_shifts[index].sort()
         test_schedule = Schedule(test_shifts, self.list_people)
         if test_schedule.count_unmet < self.count_unmet:
-            print('Изменяю в', index + 1, 'смене', human, 'на', on_whom)
+            if display_work and display_change:
+                print('Изменяю в', index + 1, 'смене', human, 'на', on_whom)
             self.shifts = test_shifts
             self.changed = True
 
